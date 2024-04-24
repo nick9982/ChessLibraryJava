@@ -6,6 +6,7 @@ public class Negamax {
 	public static Bitboard state = null;
 	public static int maxDepth = 0;
 	
+	// Data type to store the score next to the path. This helps to return the optimal move from negamax
 	public static class Score {
 		public String path = "";
 		public int score = 0;
@@ -15,12 +16,13 @@ public class Negamax {
 		}
 	}
 	
+	
+	// Recursive game tree evaluator
 	public static Score negamax(int depth, int color, String path) {
-        // Terminating condition: either depth is zero or the game state is final
+        // leaf nodes at max depth or if the game is finished
         if (depth == 0 || state.isFinished()) {
             // Calculate the score based on the current game state
             int val = color * state.score();
-            //System.out.println(color);
             return new Score(path, val);
         }
 
@@ -32,16 +34,12 @@ public class Negamax {
         for (String move : children) {
             // Make the move
             if (!state.move(new Move(move))) {
-                continue; // Skip invalid moves
+                continue;
             }
             
-            if(depth == 1) {
-            	System.out.println(color);
-            }
-            // Recursive call to negamax with updated alpha-beta
+            // Recursive call to negamax
             Score childScore = negamax(depth - 1, -color, path + move);
 
-            // Calculate the negated score for the parent
             int currentScore = -childScore.score;
 
             // If the current score is greater than the best score, update it
@@ -50,7 +48,7 @@ public class Negamax {
                 bestScore.path = childScore.path;
             }
 
-            // Undo the move to backtrack
+            // Undo the mov
             state.Undo();
         }
 
