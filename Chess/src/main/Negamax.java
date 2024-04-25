@@ -17,6 +17,7 @@ public class Negamax {
 	}
 	
 	
+	// static binded negamax class
 	// Recursive game tree evaluator
 	public static Score negamax(int depth, int color, String path) {
         // leaf nodes at max depth or if the game is finished

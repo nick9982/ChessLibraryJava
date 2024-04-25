@@ -91,6 +91,7 @@ public class GUI extends JFrame {
 			}
 			
 			// thread run command
+			// Use of dynamic binding. We are rebinding the Runnable run() method with our run() method.
 			@Override
 			public void run() {
 				// set mutex locking the interface input

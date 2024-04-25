@@ -4,7 +4,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Stack;
-
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 import main.GUI.Point;
 
 public class Bitboard {
@@ -436,6 +438,13 @@ public class Bitboard {
 						//Generate bishop moves
 						if(rPin || mustKingMove) continue;
 						legalMoves.addAll(numberToLegalMoveList(position, BishopMove(position, bPin, chckAttcks, color, false) & ~position));
+						
+						for(int x = 0; x < legalMoves.size(); x++) {
+							if(legalMoves.get(x).substring(2,4).equals("h2")) {
+								legalMoves.remove(x);
+								x--;
+							}
+						}
 						break;
 					case 4:
 					case 10:
@@ -554,17 +563,17 @@ public class Bitboard {
 		long whitePieces = this.whitePieces();
 		
 		//Record the change made to checkCount
-		setChangeInt((char)18, checkCount);
+		setChange((char)18, (int)checkCount);
 		changesMadeCnt += 3;
 		checkCount = 0;
 		// If it is white's move
 		if(turn == 0) {
 			// Resetting the attack lanes so they can be rediscovered
-			setChangeLong((char)6, blackAttackLane);
+			setChange((char)6, (long)blackAttackLane);
 			blackAttackLane = 0L;
-			setChangeLong((char)4, pinnedWhiteR);
+			setChange((char)4, (long)pinnedWhiteR);
 			pinnedWhiteR = 0L;
-			setChangeLong((char)3, pinnedWhiteB);
+			setChange((char)3, (long)pinnedWhiteB);
 			changesMadeCnt += 15;
 			pinnedWhiteB = 0L;
 			long test_pos = this.state[5];
@@ -750,11 +759,11 @@ public class Bitboard {
 			}
 		// Otherwise it is blacks turn
 		} else {
-			setChangeLong((char)5, whiteAttackLane);
+			setChange((char)5, (long)whiteAttackLane);
 			whiteAttackLane = 0L;
-			setChangeLong((char)2, pinnedBlackR);
+			setChange((char)2, (long)pinnedBlackR);
 			pinnedBlackR = 0L;
-			setChangeLong((char)1, pinnedBlackB);
+			setChange((char)1, (long)pinnedBlackB);
 			changesMadeCnt += 15;
 			pinnedBlackB = 0L;
 			long test_pos = this.state[11];
@@ -1048,7 +1057,7 @@ public class Bitboard {
 				// Checks current pawn location relative to en passant to see if it is able to jump it.
 				// Checks left side
 				if((position >>> 1) == enPassant && (position & 72340172838076673L) == 0) {
-					setChangeLong((char)21, enPassantTake);
+					setChange((char)21, (long)enPassantTake);
 					changesMadeCnt += 5;
 					enPassantTake = enPassant;
 					enPassant = position >>> 9;
@@ -1056,7 +1065,7 @@ public class Bitboard {
 				}
 				//Checks right side
 				else if(position << 1 == enPassant && (position & -9187201950435737472L) == 0) {
-					setChangeLong((char)21, enPassantTake);
+					setChange((char)21, (long)enPassantTake);
 					changesMadeCnt += 5;
 					enPassantTake = enPassant;
 					enPassant = position >>> 7;
@@ -1096,14 +1105,14 @@ public class Bitboard {
 			if(enPassant != 0L) {
 				// The following code block works the same as the code block above. If you would like information on it, then refer to the above code block.
 				if((position >>> 1) == enPassant && (position & 72340172838076673L) == 0) {
-					setChangeLong((char)21, enPassantTake);
+					setChange((char)21, (long)enPassantTake);
 					changesMadeCnt += 5;
 					enPassantTake = enPassant;
 					enPassant = position << 7;
 					moves |= position << 7;
 				}
 				else if(position << 1 == enPassant && (position & -9187201950435737472L) == 0) {
-					setChangeLong((char)21, enPassantTake);
+					setChange((char)21, (long)enPassantTake);
 					changesMadeCnt += 5;
 					enPassantTake = enPassant;
 					enPassant = position << 9;
@@ -1459,7 +1468,7 @@ public class Bitboard {
 	}
 	
 	// Push an integer to the changes made stack
-	private void setChangeInt(char idx, int val) {
+	private void setChange(char idx, int val) {
 		if(hasChangeBeenSet[idx-1]) return;
 		hasChangeBeenSet[idx-1] = true;
 		placeArrInStack(Number.encodeInteger(val), changesMade);
@@ -1467,7 +1476,7 @@ public class Bitboard {
 	}
 	
 	// Push a long to the changes made stack
-	private void setChangeLong(char idx, long val) {
+	private void setChange(char idx, long val) {
 		if(hasChangeBeenSet[idx-1]) return;
 		hasChangeBeenSet[idx-1] = true;
 		placeArrInStack(Number.encodeLong(val), changesMade);
@@ -1475,7 +1484,7 @@ public class Bitboard {
 	}
 	
 	// Push a boolean to the changes made stack
-	private void setChangeBool(char idx, boolean inp) {
+	private void setChange(char idx, boolean inp) {
 		if(hasChangeBeenSet[idx-1]) return;
 		hasChangeBeenSet[idx-1] = true;
 		changesMade.push(booleanToChar(inp));
@@ -1514,8 +1523,8 @@ public class Bitboard {
 		enPassantHappen = false;
 		castleHappen = false;
 		boolean rPin = false, bPin = false;
-		setChangeBool((char)20, kingMustMove);
-		setChangeLong((char)15, enPassant);
+		setChange((char)20, kingMustMove);
+		setChange((char)15, (long)enPassant);
 		changesMadeCnt += 7;
 		if(checkCount > 1) kingMustMove = true;
 		else kingMustMove = false;
@@ -1647,7 +1656,7 @@ public class Bitboard {
 				this.state[0] &= ~move.getBitFrom();
 				this.state[4] |= destination;
 				pawnToDiffPiece = true;
-				setChangeBool((char)22, pawnToQueen);
+				setChange((char)22, pawnToQueen);
 				changesMadeCnt += 2;
 				pawnToQueen = true;
 			}
@@ -1671,7 +1680,7 @@ public class Bitboard {
 				this.state[6] &= ~move.getBitFrom();
 				this.state[10] |= destination;
 				pawnToDiffPiece = true;
-				setChangeBool((char)22, pawnToQueen);
+				setChange((char)22, pawnToQueen);
 				changesMadeCnt += 2;
 				pawnToQueen = true;
 			}
@@ -1679,16 +1688,16 @@ public class Bitboard {
 			// if you can castle
 			if(idx == 11 && (brRookCastle == true || blRookCastle == true)) {
 				// if the black king moves castling will no longer be an option
-				setChangeBool((char)11, brRookCastle);
+				setChange((char)11, brRookCastle);
 				brRookCastle = false;
-				setChangeBool((char)12, blRookCastle);
+				setChange((char)12, blRookCastle);
 				changesMadeCnt += 4;
 				blRookCastle = false;
 				// is the move castling?
 				if(destination == 64) {
-					setChangeLong((char)16, castleFrom);
+					setChange((char)16, (long)castleFrom);
 					castleFrom = 128;
-					setChangeLong((char)17, castleTo);
+					setChange((char)17, (long)castleTo);
 					castleTo = 32;
 					changesMadeCnt += 10;
 					setMove((char)7);
@@ -1699,9 +1708,9 @@ public class Bitboard {
 				}
 				// is the move castling
 				else if(destination == 4) {
-					setChangeLong((char)16, castleFrom);
+					setChange((char)16, (long)castleFrom);
 					castleFrom = 1;
-					setChangeLong((char)17, castleTo);
+					setChange((char)17, (long)castleTo);
 					castleTo = 8;
 					changesMadeCnt += 10;
 					setMove((char)7);
@@ -1714,16 +1723,16 @@ public class Bitboard {
 			// is white able to castle?
 			else if(idx == 5 && (wrRookCastle == true || wlRookCastle == true)) {
 				// if the white king moves, castling will no longer be an option
-				setChangeBool((char)9, wrRookCastle);
+				setChange((char)9, wrRookCastle);
 				wrRookCastle = false;
-				setChangeBool((char)10, wlRookCastle);
+				setChange((char)10, wlRookCastle);
 				changesMadeCnt += 4;
 				wlRookCastle = false;
 				//is the move castling?
 				if(destination == 4611686018427387904L) {
-					setChangeLong((char)16, castleFrom);
+					setChange((char)16, (long)castleFrom);
 					castleFrom = -9223372036854775808L;
-					setChangeLong((char)17, castleTo);
+					setChange((char)17, (long)castleTo);
 					changesMadeCnt += 10;
 					castleTo = 2305843009213693952L;
 					setMove((char)1);
@@ -1734,9 +1743,9 @@ public class Bitboard {
 				}
 				//is the move castling?
 				else if(destination == 288230376151711744L) {
-					setChangeLong((char)16, castleFrom);
+					setChange((char)16, (long)castleFrom);
 					castleFrom = 72057594037927936L;
-					setChangeLong((char)17, castleTo);
+					setChange((char)17, (long)castleTo);
 					changesMadeCnt += 10;
 					castleTo = 576460752303423488L;
 					setMove((char)1);
@@ -1748,22 +1757,22 @@ public class Bitboard {
 			}
 			// if the rook is moving disable castling
 			else if(idx == 7 && brRookCastle && (move.getBitFrom() & 255) != 0) {
-				setChangeBool((char)11, brRookCastle);
+				setChange((char)11, brRookCastle);
 				changesMadeCnt += 2;
 				brRookCastle = false;
 			}
 			else if(idx == 7 && blRookCastle && (move.getBitFrom() & 1) != 0) {
-				setChangeBool((char)12, blRookCastle);
+				setChange((char)12, blRookCastle);
 				changesMadeCnt += 2;
 				blRookCastle = false;
 			}
 			else if(idx == 1 && wlRookCastle && (move.getBitFrom() & -9223372036854775808L) != 0) {
-				setChangeBool((char)10, wlRookCastle);
+				setChange((char)10, wlRookCastle);
 				changesMadeCnt += 2;
 				wlRookCastle = false;
 			}
 			else if(idx == 1 && wrRookCastle && (move.getBitFrom() & 72057594037927936L) != 0) {
-				setChangeBool((char)9, wrRookCastle);
+				setChange((char)9, wrRookCastle);
 				changesMadeCnt += 2;
 				wrRookCastle = false;
 			}
@@ -1803,7 +1812,7 @@ public class Bitboard {
 		else turn = 1;
 		
 		// check if opponent king is in check
-		setChangeBool((char)19, inCheck);
+		setChange((char)19, inCheck);
 		changesMadeCnt += 2;
 		inCheck = inCheck();
 		
@@ -1811,11 +1820,11 @@ public class Bitboard {
 		if(kingMustMove && !areThereLegalMoves) {
 			int kingIdx = (this.turn+1)*6-1;
 			if(KingMove(this.state[kingIdx], this.turn, true ,false) == 0L) {
-				setChangeBool((char)7, checkmate);
+				setChange((char)7, checkmate);
 				changesMadeCnt += 2;
 				checkmate = true;
 			}
-			setChangeBool((char)8, areThereLegalMoves);
+			setChange((char)8, areThereLegalMoves);
 			changesMadeCnt += 2;
 			areThereLegalMoves = true;
 		}
@@ -1824,16 +1833,16 @@ public class Bitboard {
 			//checking if there are any legal moves
 			int kingIdx = (this.turn+1)*6-1;
 			if((allLegalMoves(this.turn, false, true) | KingMove(this.state[kingIdx], this.turn, true, false)) == 0L) {
-				setChangeBool((char)7, checkmate);
+				setChange((char)7, checkmate);
 				changesMadeCnt += 2;
 				checkmate = true;
 			}
-			setChangeBool((char)8, areThereLegalMoves);
+			setChange((char)8, areThereLegalMoves);
 			changesMadeCnt += 2;
 			areThereLegalMoves = true;
 		}
 		else if(!inCheck) {
-			setChangeBool((char)8, areThereLegalMoves);
+			setChange((char)8, areThereLegalMoves);
 			changesMadeCnt += 2;
 			areThereLegalMoves = false;
 		}
@@ -1874,10 +1883,7 @@ public class Bitboard {
 		return this.enPassantTake;
 	}
 	
-	// evaluates positions for the negamax evaluator
 	public int score() {
-		
-		// get pieces developed
 		int punish_home_b[] = {
 			     -50,  -50,  -50,  -50,  -50,  -50,  -50,  -50,
 			     0,  0,  0,  0,  0,  0,  0,  0,
@@ -1937,56 +1943,56 @@ public class Bitboard {
 				1, 1, 1, 1, 1, 1, 1, 1
 		};
 		
-		//sums all the points for both teams
+		// sets up mapping from piece type to functions for white pieces and for black pieces
+		Map<Integer, Function<Integer, Integer>> scoreWhiteMap = Map.of(
+				0, i -> (int)(pawn_table_w[i]),
+				1, i -> (int)(positionalEval[i] * 100 + 500),
+				2, i -> (int)(positionalEval[i] * 100 + 300),
+				3, i -> (int)(positionalEval[i] * 100 + 300),
+				4, i -> (int)(positionalEval[i] * 200 + 900)
+				);
+		
+		Map<Integer, Function<Integer, Integer>> scoreBlackMap = Map.of(
+				6, i -> (int)(pawn_table_b[i]),
+				7, i -> (int)(positionalEval[i] * 100 + 500),
+				8, i -> (int)(positionalEval[i] * 100 + 300),
+				9, i -> (int)(positionalEval[i] * 200 + 300),
+				10, i -> (int)(positionalEval[i] * 100 + 900)
+		);
+		
+		// uses IntStream to generate a stream of integer scores then sums them. This is funcitonal
 		int scoreWhite = 0, scoreBlack = 0;
-		long position = 1L;
-		for(int i = 0; i < 64; i++) {
-			for(int j = 0; j < 12; j++) {
+		scoreWhite = IntStream.range(0, 64).map(i -> {
+			int pieceScore = 0;
+			long position = 1L << i;
+			for(int j = 0; j < 6; j ++ ) {
 				if((this.state[j] & position) != 0) {
-					switch(j) {
-					case 5:
-					case 11:
-						continue;
-					case 0:
-						scoreWhite += pawn_table_w[i];
-						break;
-					case 1:
-						scoreWhite += (int)(positionalEval[i] * 100 + 500);
-						break;
-					case 2:
-					case 3:
-						scoreWhite += (int)(positionalEval[i] * 100 + 300) + punish_home_w[i];
-						break;
-					case 4:
-						scoreWhite += (int)(positionalEval[i] * 200 + 900);
-						break;
-					case 6:
-						scoreBlack += pawn_table_b[i];
-						break;
-					case 7:
-						scoreBlack += (int)(positionalEval[i] * 100 + 500);
-						break;
-					case 8:
-					case 9:
-						scoreBlack += (int)(positionalEval[i] * 100 + 300) + punish_home_b[i];
-						break;
-					case 10:
-						scoreBlack += (int)(positionalEval[i] * 200 + 900);
-						break;
-					}
+					pieceScore += scoreWhiteMap.getOrDefault(j, v->0).apply(i);
 				}
 			}
-			position <<= 1L;
-		}
-		// encourage checkmates
-		if(turn == 0) {
-			if(checkmate)
-				scoreBlack += 2000;
-		}
-		else if(checkmate)
-			scoreWhite += 2000;
+			return pieceScore;
+		}).sum();
 		
-		// score eval = scoreWhite - scoreBlack
+		scoreBlack = IntStream.range(0, 64).map(i -> {
+			long position = 1L << i;
+			int pieceScore = 0;
+			for(int j = 6; j < 12; j++) {
+				if((this.state[j] & position) != 0) {
+					pieceScore += scoreBlackMap.getOrDefault(j,  v->0).apply(i);
+				}
+			}
+			return pieceScore;
+		}).sum();
+		
+		// Adds the checkmate value imperatively
+		if(turn == 0 && checkmate) {
+			scoreBlack += 2000;
+		}
+		else if(checkmate) {
+			scoreWhite += 2000;
+		}
+		
+		// returns the evaluation of the state of the current bitboard
 		return scoreWhite - scoreBlack;
 	}
 	
